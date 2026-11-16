@@ -49,7 +49,9 @@ Each song starts at 0 and earns points:
 | Energy closeness: `2.0 × (1 - abs(song.energy - target_energy))` | 0 to +2.0 |
 | Acoustic match: `likes_acoustic` and acousticness > 0.6, or not `likes_acoustic` and acousticness < 0.4 | +1.0 |
 
-The highest possible score is 6.0. Genre has the most weight because it is the strongest sign of taste. Energy is scored by how close it is to the target, not by how high it is, so a user who wants calm music is not pushed toward loud songs. Each check that adds points also records a short reason (e.g. "genre match +2.0"), which is used to explain the recommendation.
+> **Experiment update:** in the weight-shift experiment, genre was cut to +1.0 and energy raised to 0–4.0 (max score 7.0). See the Evaluation section of [model_card.md](model_card.md). The table above shows the original weights.
+
+With the original weights the highest possible score is 6.0. Genre has the most weight because it is the strongest sign of taste. Energy is scored by how close it is to the target, not by how high it is, so a user who wants calm music is not pushed toward loud songs. Each check that adds points also records a short reason (e.g. "genre match +2.0"), which is used to explain the recommendation.
 
 **Ranking rule (all scores → top k list)**
 

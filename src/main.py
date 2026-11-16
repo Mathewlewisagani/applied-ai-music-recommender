@@ -9,7 +9,7 @@ You will implement the functions in recommender.py:
 - recommend_songs
 """
 
-from recommender import load_songs, recommend_songs
+from recommender import load_songs, recommend_songs, MAX_SCORE
 
 
 # Test users. Each profile uses the same fields as the UserProfile class:
@@ -85,10 +85,69 @@ USER_PROFILES = {
 }
 
 
+# Adversarial / edge-case profiles, built to find spots where the scoring
+# logic can be "tricked" or gives surprising results.
+ADVERSARIAL_PROFILES = {
+    # Conflicting signals: wants sad songs but at gym-level energy.
+    # The only sad song (folk, energy 0.26) fights the energy target.
+    "Sad but Hyped": {
+        "favorite_genre": "pop",
+        "favorite_mood": "sad",
+        "target_energy": 0.9,
+        "likes_acoustic": False,
+    },
+    # Genre and mood that don't exist in the catalog. Only energy and
+    # acousticness can score, so the max reachable score is 3.0.
+    "Ghost Genre": {
+        "favorite_genre": "k-pop",
+        "favorite_mood": "dreamy",
+        "target_energy": 0.6,
+        "likes_acoustic": False,
+    },
+    # Same taste as "Happy Pop Fan" but capitalized. Matching is exact
+    # text, so "Pop" != "pop" and "Happy" != "happy".
+    "Caps Lock Pop Fan": {
+        "favorite_genre": "Pop",
+        "favorite_mood": "Happy",
+        "target_energy": 0.8,
+        "likes_acoustic": False,
+    },
+    # Energy outside the 0-1 range. Nothing validates it, so the energy
+    # term goes negative for every song.
+    "Below Zero Energy": {
+        "favorite_genre": "ambient",
+        "favorite_mood": "chill",
+        "target_energy": -1.0,
+        "likes_acoustic": True,
+    },
+    # Wants acoustic metal. The only metal song is 0.03 acoustic, but the
+    # +2.0 genre bonus can still outweigh the missed acoustic point.
+    "Unplugged Metalhead": {
+        "favorite_genre": "metal",
+        "favorite_mood": "angry",
+        "target_energy": 0.95,
+        "likes_acoustic": True,
+    },
+    # Dead-center energy with a mood that has no genre match. Many songs
+    # land close to 0.5, so the top 5 is decided by tiny energy gaps.
+    "Perfectly Average": {
+        "favorite_genre": "blues",
+        "favorite_mood": "happy",
+        "target_energy": 0.5,
+        "likes_acoustic": False,
+    },
+}
+
+
 def main() -> None:
     songs = load_songs("../data/songs.csv")
 
     for name, user_prefs in USER_PROFILES.items():
+        recommendations = recommend_songs(user_prefs, songs, k=5)
+        print_recommendations(name, user_prefs, recommendations)
+
+    print("\n\n######## ADVERSARIAL / EDGE-CASE PROFILES ########")
+    for name, user_prefs in ADVERSARIAL_PROFILES.items():
         recommendations = recommend_songs(user_prefs, songs, k=5)
         print_recommendations(name, user_prefs, recommendations)
 
@@ -108,7 +167,7 @@ def print_recommendations(name: str, user_prefs: dict, recommendations: list) ->
 
     for rank, (song, score, explanation) in enumerate(recommendations, start=1):
         print(f"\n {rank}. {song['title']} ({song['artist']})")
-        print(f"    Score: {score:.2f} / 6.00")
+        print(f"    Score: {score:.2f} / {MAX_SCORE:.2f}")
         print("    Reasons:")
         # explanation is the reasons from score_song joined by ", "
         for reason in explanation.split(", "):
